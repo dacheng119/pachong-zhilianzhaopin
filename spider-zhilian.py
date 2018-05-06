@@ -123,6 +123,7 @@ def getGwzzAndRzyq(content):
         content=re.sub(r'（','(',content)
         content=re.sub(r'）',')',content)
         content=re.sub(r'&nbsp;','',content)
+        content=re.sub(r'&[mn]dash;','',content)   #删除长短破折号
         content=re.sub(r'((?:岗位职责|岗位描述|岗位说明|工作职责|工作内容|任职要求|职位要求|职位描述|技术要求|要求\b|岗位要求|任职资格|优选条件|工作地址|\b待遇|\b福利待遇|招聘|薪资待遇|工作时间|上班时间|公司优势|应聘条件):?)',r'\n\1\n',content)
         content=re.sub(r'(\d+\.)',r'\n\1',content)   #把1.或12.修整为\n1.或\n12.
         content=re.sub('(\([一二三四五六七八九]\))',r'\n\1',content) #把(一)替换为\n(一)的形式
@@ -150,7 +151,8 @@ def getGwzzAndRzyq(content):
 
 def main():
     installNewOpener()
-    keywords=['linux运维','安全工程师']#,'系统工程师','系统集成工程师','网络管理员','云计算工程师'] #系统集成工程师、系统工程师的职位很多
+#    keywords=['linux运维','安全工程师']#,'系统工程师','系统集成工程师','网络管理员','云计算工程师'] #系统集成工程师、系统工程师的职位很多
+    keywords=['系统工程师']#,'系统集成工程师'] #系统集成工程师、系统工程师的职位很多
     for keyword in keywords:              #第一重循环：按关键字循环
         n=1                           #设置职位的计数器
         print('正在处理关键字',keyword,'......')
@@ -182,7 +184,6 @@ def main():
                 'st':99999,
                 'isadv':1
                 }
-    #            print(query)
                 url_values=parse.urlencode(query)
                 url=r'https://sou.zhaopin.com/jobs/searchresult.ashx?'+url_values
                 html=getHtml(url)
@@ -194,8 +195,9 @@ def main():
                     l=[]                          #定义空列表，保存内容，以便写入csv文件
                     try:
                         html=getHtml(url)
-                    except error.HTTPError:
-                        print('HTTPError错误',url)
+                    except (error.HTTPError,error.URLError):
+                        print('HTTPError错误或URLError，已经跳过本次处理',url)
+                        continue
                     companyName=getCompany(html)
                     zhaopingangwei=getZhiWei(html)
                     zhaopinrenshu=getRenShu(html)
