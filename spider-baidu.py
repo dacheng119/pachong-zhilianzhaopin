@@ -114,7 +114,7 @@ def main():
         for k in keywords:              #第一重循环：按关键字循环
             keyword=k.strip()
             i=1                               #设置每个关键字的计数器
-            print('正在处理关键字',keyword,'......')
+            print(Fore.LIGHTWHITE_EX+'正在处理关键字',Fore.LIGHTWHITE_EX+keyword,Fore.LIGHTWHITE_EX+'......')
             query={
                 'ie':'utf-8',
                 'f':8,
