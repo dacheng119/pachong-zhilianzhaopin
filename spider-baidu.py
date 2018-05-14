@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-#-*- coding:utf-8 -*-
-#æœ¬ç¨‹åºå¯ä»¥æ ¹æ®ç”¨æˆ·è¾“å…¥çš„å…³é”®å­—ï¼Œåœ¨www.baidu.comä¸Šè¿›è¡Œæœç´¢ã€‚å¯¹æœç´¢çš„ç»“æœï¼ŒæŠŠurlã€keywordså’Œdescribeæå–å‡ºæ¥ã€‚
+#-*- coding:cp936 -*-
+#±¾³ÌĞò¿ÉÒÔ¸ù¾İÓÃ»§Ìá¹©µÄ¹Ø¼ü×Ö£¬ÔÚwww.baidu.comÉÏ½øĞĞËÑË÷¡£¶ÔËÑË÷µÄ½á¹û£¬°Ñ³¬Á´½ÓµÄcaption¡¢abstractºÍurlÌáÈ¡³öÀ´¡£
 
 from urllib import request
 from urllib import parse
@@ -9,13 +9,15 @@ from urllib.request import HTTPCookieProcessor
 import http.cookiejar
 import sys
 import re
-import math
 import csv
 import time
 import random
+import colorama
+from colorama import Fore
+colorama.init(autoreset=True)
 
 def installNewOpener():
-    '''å®‰è£…æ–°çš„openerï¼Œä»¥ä¾¿æ­£ç¡®çš„å¤„ç†Cookie'''
+    '''°²×°ĞÂµÄopener£¬ÒÔ±ãÕıÈ·µÄ´¦ÀíCookie'''
     opener=request.build_opener(HTTPCookieProcessor)
     request.install_opener(opener)
     
@@ -37,75 +39,116 @@ def getResult(**query):
         respone=request.urlopen(req)
         page=respone.read()
     except (error.HTTPError,error.URLError):
-        print ("ç½‘ç»œå¼‚å¸¸ï¼Œæ— æ³•æ­£å¸¸è®¿é—®ï¼Œç¨‹åºè‡ªåŠ¨é€€å‡º")
+        print (Fore.LIGHTRED_EX+"ÏÖÔÚÍøÂçÒì³££¬ÇëÅÅ³ıÍøÂç¹ÊÕÏºóÔÙ´ÎÖØÊÔ£¡")
         sys.exit()
     html=page.decode('utf-8')
     return html
 
-def findUrls(html):
-    '''ä»æŒ‡å®šçš„htmlæ–‡ä»¶ä¸­æå–å‡ºéœ€è¦çš„url'''
-    patturl=re.compile(r'<h3.*?href="(http://www.baidu.com/link\?url=[-\w]+)"',re.S|re.I)
-    urls=re.findall(patturl,html)
+def getCaptions(html):
+    '''´ÓÖ¸¶¨µÄhtmlÎÄ¼şÖĞÌáÈ¡Caption'''
+    captions=[]
+    pattCaption=re.compile(r'<h3[^>]+><a[^>]+>(.+?)</a></h3>',re.S|re.I)
+    match=re.findall(pattCaption,html)
+    if match:
+        match=match[0:5]
+        for caption in match:
+            caption=re.sub(r'&amp;','&',caption)
+            caption=re.sub(r'&nbsp;','',caption)
+            caption=re.sub(r'&lt;','<',caption)
+            caption=re.sub(r'&gt;','>',caption)            
+            caption=re.sub(r'</?[^>]+>','',caption)
+            captions.append(caption)
+    else:
+        captions=[]
+    return captions
+    
+def getAbstract(html):
+    """´ÓÖ¸¶¨µÄÍøÒ³ÖĞÌáÈ¡ÕªÒªĞÅÏ¢"""
+    abstracts=[]
+    pattAbstract=re.compile(r'<div class="c-abstract[^>]+>(.+?)</div>',re.S|re.I)
+    match=re.findall(pattAbstract,html)
+    if match:
+        match=match[0:5]
+        for abstract in match:
+            abstract=re.sub(r'&amp;','&',abstract)
+            abstract=re.sub(r'&nbsp;','',abstract)
+            abstract=re.sub(r'&lt;','<',abstract)
+            abstract=re.sub(r'&gt;','>',abstract)            
+            abstract=re.sub(r'</?[^>]+>','',abstract)
+            abstracts.append(abstract)
+    else:
+        abstracts=[]
+    return abstracts
+
+def getUrl(html):
+    """´ÓÖ¸¶¨µÄÍøÒ³ÖĞÌáÈ¡url"""
+    urls=[]
+    pattUrl=re.compile(r'<div class="f13"><a[^>]+>(.+?)</a>',re.S|re.I)
+    match=re.findall(pattUrl,html)
+    if match:
+        match=match[0:5]
+        for url in match:
+            url=re.sub(r'&amp;','&',url)
+            url=re.sub(r'&nbsp;','',url)
+            url=re.sub(r'&lt;','<',url)
+            url=re.sub(r'&gt;','>',url)            
+            url=re.sub(r'</?[^>]+>','',url)
+            urls.append(url)
+    else:
+        urls=[]
     return urls
 
-def getHtml(url):
-    '''æ ¹æ®æŒ‡å®šçš„urlå¾—åˆ°ç›¸åº”çš„htmlæ–‡ä»¶ï¼ŒåŒæ—¶è¿”å›æ‰“å¼€çš„url'''
-    req=request.Request(url)
-    respone=request.urlopen(req)
-    page=respone.read()
-    try:
-        html=page.decode('utf-8')
-    except UnicodeDecodeError:
-        html=page.decode('gb2312')
-    except (error.HTTPError,error.URLError):
-        print ("ç½‘ç»œå¼‚å¸¸ï¼Œæ— æ³•æ­£å¸¸è®¿é—®ï¼Œç¨‹åºè‡ªåŠ¨é€€å‡º")
-        sys.exit()
-    return html
-
-def getCaption(html):
-    '''ä»æŒ‡å®šçš„htmlæ–‡ä»¶ä¸­æå–Caption'''
-    pattCaption=re.compile(r'<h3 class="t.*">(.+?)</h3>',re.S|re.I)
-    match=re.search(pattCaption,html)
-    if match:
-        caption=match.group(1)
-        caption=re.sub(r'</?[^>]+>','',caption)
-    else:
-        print("å†…å®¹ä¸ºç©ºï¼Œå‡ºç°å¼‚å¸¸,ç¨‹åºè‡ªåŠ¨é€€å‡º")
-        sys.exit()
-    return caption
-    
 def main():
     installNewOpener()
-    keywords=['abc','linux']
-    for keyword in keywords:              #ç¬¬ä¸€é‡å¾ªç¯ï¼šæŒ‰å…³é”®å­—å¾ªç¯
-        i=1                               #è®¾ç½®æ¯ä¸ªå…³é”®å­—çš„è®¡æ•°å™¨
-        print('æ­£åœ¨å¤„ç†å…³é”®å­—',keyword,'......')
-        query={
-            'ie':'utf-8',
-            'f':8,
-            'rsv_bp':0,
-            'rsv_idx':1,
-            'tn':'baidu',
-            'wd':keyword,
-            'rsv_pq':'fa37d4ff0000d1ed',
-            'rsv_t':'7007O530L3w5bUBIauNrU7vgY9Le/bGc/tHMpPMsWore7vJKF8o1HDPvUmg',
-            'rqlang':"cn",
-            'rsv_enter':1,
-            'rsv_sug3':12,
-            'rsv_sug1':15,
-            'rsv_sug7':100
-            }
-        result=getResult(**query)             #å¾—åˆ°htmlæ–‡ä»¶
-        urls=findUrls(result)[0:5]
-        for url in urls:
-            html=getHtml(url)
-            caption=getCaption(html)
-            print(i,u,caption)
-            i += 1
-            
+    content=[]
+    try:
+        keywords=open(r'c:/keywords.txt','r',encoding='cp936')
+    except:
+        print(Fore.LIGHTRED_EX+r'¶ÁÈ¡"c:\keywords.txt"ÎÄ¼şÊ§°Ü£¬³ÌĞòÒì³£ÍË³ö!')
+        print(Fore.LIGHTRED_EX+r'ÇëÈ·ÈÏ"c:\keywords.txt"ÎÄ¼şÕı³£!\n')
+        sys.exit()
+    with open(r'c:/baidu.csv','w',encoding='cp936',newline='') as f: # newline¼«ÖØÒª£¬·ñÔò»á¶à³öÒ»¸ö¿Õ°×ĞĞ
+        writer=csv.writer(f)
+        title=["¹Ø¼ü´Ê","±êÌâ","ÕªÒª","ÍøÖ·","ÅÅĞò"]
+        writer.writerow(title)
+        for k in keywords:              #µÚÒ»ÖØÑ­»·£º°´¹Ø¼ü×ÖÑ­»·
+            keyword=k.strip()
+            i=1                               #ÉèÖÃÃ¿¸ö¹Ø¼ü×ÖµÄ¼ÆÊıÆ÷
+            print('ÕıÔÚ´¦Àí¹Ø¼ü×Ö',keyword,'......')
+            query={
+                'ie':'utf-8',
+                'f':8,
+                'rsv_bp':0,
+                'rsv_idx':1,
+                'tn':'baidu',
+                'wd':keyword,
+                'rsv_pq':'fa37d4ff0000d1ed',
+                'rsv_t':'7007O530L3w5bUBIauNrU7vgY9Le/bGc/tHMpPMsWore7vJKF8o1HDPvUmg',
+                'rqlang':"cn",
+                'rsv_enter':1,
+                'rsv_sug3':12,
+                'rsv_sug1':15,
+                'rsv_sug7':100
+                }
+            result=getResult(**query)             #µÃµ½htmlÎÄ¼ş
+            captions=getCaptions(result)
+            abstracts=getAbstract(result)
+            urls=getUrl(result)
+            contents=zip(captions,abstracts,urls)
+            for content in contents:
+                content=list(content)
+                content.insert(0,keyword)
+                content.append(i)
+                try:
+                    writer.writerow(content)
+                except UnicodeEncodeError:
+                    print(Fore.LIGHTYELLOW_EX+'********¹Ø¼ü×Ö "%s" ³ö´í£¬ÇëÊÖ¹¤´¦Àí********' %keyword)
+                    continue
+                i += 1
+            j=round(random.random(),2)
+            time.sleep(j)
+    print("\n")
+    print(Fore.LIGHTGREEN_EX+r"ËùÓĞ¹Ø¼ü×Ö´¦ÀíÍê±Ï£¬½á¹û±£´æÔÚc:\baidu.csvÖĞ")
 
 if __name__=='__main__':
     main()
-
-    
-
